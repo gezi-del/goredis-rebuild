@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eef1f5">
+  <title>Go Redis：核心架构与实现机制</title>
+  <link rel="stylesheet" href="style.css?v=3">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <main id="viewport" aria-label="Go Redis 技术汇报">
+    <div id="slide-frame">
+      <div id="deck">
+        <section class="slide cover active" aria-label="第 1 页：封面">
+          <div class="cover-mark"><span class="mark-square"></span> 源码技术汇报 <span class="mark-line"></span> GO REDIS REBUILD</div>
+          <div class="cover-main">
+            <p class="cover-overline">从 TCP 请求到内存数据库，再到 AOF 文件</p>
+            <h1>Go Redis<span class="cover-colon">：</span><br>核心架构与实现机制</h1>
+            <p class="cover-subtitle">基于 Go 的轻量级 Redis 服务复现与源码分析</p>
+          </div>
+          <div class="cover-flow" aria-hidden="true">
+            <span>RESP</span><i></i><span>SERVER</span><i></i><span>EXECUTOR</span><i></i><span>KV STORE</span><i></i><span>AOF</span>
+          </div>
+          <div class="cover-bottom"><span>基于当前工作区 goredis-rebuild 源码</span><span>12–15 分钟 · 技术汇报</span></div>
+        </section>
+
+        <section class="slide" aria-label="第 2 页：整体架构">
+          <div class="slide-top"><span class="eyebrow">01 / SYSTEM MAP</span><span class="section-id">架构</span></div>
+          <h2>请求沿一条主链前进，持久化在旁路完成</h2>
+          <p class="lead">网络、协议、调度与存储分层；<b>app/dig</b> 负责把具体实现装配成可运行服务。</p>
+          <div class="architecture">
+            <div class="arch-caption">主请求链 · 同步返回 Reply</div>
+            <div class="arch-row">
+              <div class="arch-node"><small>外部</small><strong>Client</strong><span>RESP 请求</span></div><div class="arch-arrow">→</div>
+              <div class="arch-node"><small>server/</small><strong>Server</strong><span>Accept / 连接任务</span></div><div class="arch-arrow">→</div>
+              <div class="arch-node"><small>protocol/ + handler/</small><strong>Parser · Handler</strong><span>字节 → Droplet → 参数</span></div><div class="arch-arrow">→</div>
+              <div class="arch-node arch-focus"><small>database/</small><strong>DBTrigger · DBExecutor</strong><span>Command Channel / 分发</span></div><div class="arch-arrow">→</div>
+              <div class="arch-node"><small>datastore/</small><strong>KVStore</strong><span>map + 五类实体</span></div>
+            </div>
+            <div class="arch-branch"><div class="branch-stem"></div><div class="branch-item"><b>persist/ · AOF Persister</b><span>写命令进入缓冲 Channel，后台写入文件</span></div></div>
+            <div class="arch-foundation"><span><b>app / dig</b> 构造依赖图</span><span><b>lib/pool</b> 提交后台任务</span><span><b>log/</b> 输出运行信息</span></div>
+          </div>
+          <div class="takeaway"><b>读图重点</b>　主链决定命令结果；AOF 是由数据操作发起的异步旁路。</div>
+          <div class="source">源码：app/factory.go · server/server.go · handler/handler.go · database/ · datastore/ · persist/</div>
+        </section>
+
+        <section class="slide" aria-label="第 3 页：SET 命令生命周期">
+          <div class="slide-top"><span class="eyebrow">02 / REQUEST TRACE</span><span class="section-id">请求链</span></div>
+          <h2>一条 SET：两个任务 Channel，一个结果 Channel</h2>
+          <p class="lead">例：<code>set name Tom</code>。请求先解析、再集中执行；客户端等待的是执行结果，不是 AOF 落盘。</p>
+          <div class="trace-layout">
+            <div class="resp-box"><span class="label">客户端编码 · RESP</span><code>*3\r\n
+$3\r\nset\r\n
+$4\r\nname\r\n
+$3\r\nTom\r\n</code><span class="resp-note">协议首字节 <b>*</b> 进入 <code>parseMultiBulk()</code></span></div>
+            <div class="trace-main">
+              <div class="trace-step"><em>01</em><b>Server.Accept()</b><span>接收 TCP 连接</span></div>
+              <div class="trace-link">↓ <i>pool.Submit</i></div>
+              <div class="trace-step"><em>02</em><b>Parser.ParseStream()</b><span>解析 RESP，生成 Droplet</span></div>
+              <div class="trace-link channel">↓ <i>Droplet Channel</i></div>
+              <div class="trace-step"><em>03</em><b>Handler.handleDroplet()</b><span>提取 MultiReply.Args()</span></div>
+              <div class="trace-link">↓ <i>DBTrigger.Do()</i></div>
+              <div class="trace-step"><em>04</em><b>Command → DBExecutor</b><span>命令类型、参数、ctx、receiver</span></div>
+              <div class="trace-link channel">↓ <i>Command Channel</i></div>
+              <div class="trace-step strong"><em>05</em><b>KVStore.Set()</b><span>更新 map 中的 String 实体</span></div>
+            </div>
+            <div class="trace-side">
+              <div class="side-title">执行后出现两条路径</div>
+              <div class="side-route"><span class="route-icon sync">↩</span><div><b>同步结果</b><p><code>Command.receiver</code> → Trigger → Handler 写回 <code>:1</code></p></div></div>
+              <div class="side-route"><span class="route-icon async">↘</span><div><b>异步持久化</b><p><code>PersistCmd()</code> → AOF 缓冲 Channel → Writer</p></div></div>
+              <div class="side-foot">提交到 AOF 队列，不代表已经执行 <code>Sync()</code>。</div>
+            </div>
+          </div>
+          <div class="source">源码：protocol/parser.go · handler/handler.go · database/trigger.go · database/executor.go · datastore/kv_store.go</div>
+        </section>
+
+        <section class="slide" aria-label="第 4 页：命令调度">
+          <div class="slide-top"><span class="eyebrow">03 / COMMAND DISPATCH</span><span class="section-id">调度</span></div>
+          <h2>连接可以并发，KVStore 修改集中在执行循环</h2>
+          <p class="lead"><code>DBTrigger.Do()</code> 验证命令并投递；<code>DBExecutor.run()</code> 在同一个 <code>select</code> 循环内分发执行。</p>
+          <div class="dispatch-visual">
+            <div class="clients"><span>客户端 A</span><span>客户端 B</span><span>客户端 C</span></div>
+            <div class="converge">→<br>→<br>→</div>
+            <div class="dispatch-channel"><small>Entrance()</small><strong>chan *Command</strong><span>无缓冲命令入口</span></div>
+            <div class="horizontal-arrow">→</div>
+            <div class="executor-loop"><small>DBExecutor.run()</small><strong>单执行循环</strong><div class="loop-branches"><span>命令 → cmdHandlers[cmd]</span><span>GC Tick → dataStore.GC()</span><span>ctx.Done() → 退出</span></div></div>
+            <div class="horizontal-arrow">→</div>
+            <div class="store-result"><strong>KVStore</strong><span>同一执行器内顺序修改</span><div class="reply-line">← receiver → 独立 Reply</div></div>
+          </div>
+          <div class="command-definition"><div><span class="label">Command 中保存</span><code>ctx · cmd · args · receiver</code></div><div><span class="label">Trigger 的等待点</span><code>发送到 Entrance() → 等待 receiver</code></div><div><span class="label">设计收益</span><span>减少同一 KVStore 内写操作的锁竞争与竞态复杂度</span></div></div>
+          <div class="source">源码：database/struct.go · database/trigger.go · database/executor.go</div>
+        </section>
+
+        <section class="slide" aria-label="第 5 页：数据结构与跳表">
+          <div class="slide-top"><span class="eyebrow">04 / DATA STRUCTURES</span><span class="section-id">数据结构</span></div>
+          <h2>Sorted Set 以 score 为跳表节点，成员留在节点内</h2>
+          <div class="structure-strip"><span><b>String</b><small>stringEntity</small></span><span><b>List</b><small>[][]byte</small></span><span><b>Set</b><small>map[string]struct{}</small></span><span><b>Hash</b><small>map[string][]byte</small></span><span class="selected"><b>Sorted Set</b><small>skiplist + 两张索引 map</small></span></div>
+          <div class="skiplist-panel">
+            <div class="skip-title"><span>查找 score = 40 的路径示意</span><span>稀疏上层 → 全量底层</span></div>
+            <svg class="skip-svg" viewBox="0 0 1310 310" role="img" aria-label="三层跳表。顶层从头节点到 score 30；向下后沿底层到 score 40。底层有全部 score 节点。">
+              <defs><marker id="arrow-gray" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#98a5b6"/></marker><marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#2867d6"/></marker></defs>
+              <g class="skip-guides"><text x="10" y="64">L2</text><text x="10" y="154">L1</text><text x="10" y="244">L0</text></g>
+              <g class="skip-lines" stroke="#a8b3c2" stroke-width="3" marker-end="url(#arrow-gray)"><path d="M190 52H690"/><path d="M190 142H320M400 142H690M770 142H1060"/><path d="M190 232H320M400 232H505M585 232H690M770 232H875M955 232H1060"/></g>
+              <g class="skip-vertical" stroke="#cbd3dd" stroke-width="2" stroke-dasharray="5 5"><path d="M150 72V212M360 162V212M545 252V265M730 72V212M915 252V265M1100 162V212"/></g>
+              <g class="skip-nodes"><rect x="110" y="25" width="80" height="54" rx="5"/><rect x="690" y="25" width="80" height="54" rx="5"/><rect x="110" y="115" width="80" height="54" rx="5"/><rect x="320" y="115" width="80" height="54" rx="5"/><rect x="690" y="115" width="80" height="54" rx="5"/><rect x="1060" y="115" width="80" height="54" rx="5"/><rect x="110" y="205" width="80" height="54" rx="5"/><rect x="320" y="205" width="80" height="54" rx="5"/><rect x="505" y="205" width="80" height="54" rx="5"/><rect x="690" y="205" width="80" height="54" rx="5"/><rect x="875" y="205" width="80" height="54" rx="5"/><rect x="1060" y="205" width="80" height="54" rx="5"/></g>
+              <g class="skip-node-text"><text x="150" y="60">HEAD</text><text x="730" y="60">30</text><text x="150" y="150">HEAD</text><text x="360" y="150">10</text><text x="730" y="150">30</text><text x="1100" y="150">50</text><text x="150" y="240">HEAD</text><text x="360" y="240">10</text><text x="545" y="240">20</text><text x="730" y="240">30</text><text x="915" y="240">40</text><text x="1100" y="240">50</text></g>
+              <path class="search-path" d="M150 52H730V232H915" marker-end="url(#arrow-blue)"/><text class="target-label" x="970" y="235">目标 40</text>
+            </svg>
+            <div class="skip-legend"><span><i class="legend-blue"></i> 查找路线</span><span><i class="legend-gray"></i> 节点前进指针 nexts[]</span><span>每个 score 节点持有 members 集合；相同分值不新增节点</span></div>
+          </div>
+          <div class="small-facts"><span>随机层高：<code>roll()</code> 反复抛 0/1</span><span>查找 / 插入 / 删除：期望 O(log n)</span><span>范围查询：定位下界后扫描 L0</span></div>
+          <div class="source">源码：datastore/sorted_set.go · datastore/string.go · datastore/list.go · datastore/set.go · datastore/hash.go</div>
+        </section>
+
+        <section class="slide" aria-label="第 6 页：并发模型">
+          <div class="slide-top"><span class="eyebrow">05 / CONCURRENCY</span><span class="section-id">并发</span></div>
+          <h2>并发发生在连接与后台任务，写入仍由 Executor 串行化</h2>
+          <p class="lead">项目封装的是第三方 <b>ants</b> 协程池；<code>pool.Submit()</code> 负责复用任务执行单元，不是自研完整协程池。</p>
+          <div class="lane-diagram">
+            <div class="lane"><b>Server</b><span class="lane-block">Accept TCP</span><span class="lane-arrow">→</span><span class="lane-block pale">提交连接处理</span><span class="lane-rest"></span></div>
+            <div class="lane"><b>ants Pool</b><span class="lane-rest short"></span><span class="lane-block">Handler.Handle()</span><span class="lane-arrow">→</span><span class="lane-block pale">Parser.parse()</span></div>
+            <div class="lane"><b>Channel</b><span class="lane-rest mid"></span><span class="lane-block channel-block">Droplet</span><span class="lane-arrow">→</span><span class="lane-block channel-block">Command</span></div>
+            <div class="lane"><b>Executor</b><span class="lane-rest long"></span><span class="lane-block accent">run() / KVStore</span><span class="lane-arrow">→ Reply</span></div>
+            <div class="lane"><b>AOF</b><span class="lane-rest long"></span><span class="lane-block pale">buffer</span><span class="lane-arrow">→</span><span class="lane-block">后台 Writer</span></div>
+          </div>
+          <div class="concurrency-notes"><div><b>复用与上限</b><p><code>ants.NewPool(50000)</code> 配置容量上限；不是宣称实际同时运行 5 万任务。</p></div><div><b>分工</b><p>Parser 在独立提交的任务中解析；Executor 通过命令 Channel 接收；AOF Writer 后台消费缓冲。</p></div><div><b>权衡</b><p>连接处理可并发，但同一执行器的命令执行集中排队；慢命令会占住该循环。</p></div></div>
+          <div class="source">源码：server/server.go · protocol/parser.go · database/executor.go · persist/aof.go · lib/pool/pool.go</div>
+        </section>
+
+        <section class="slide" aria-label="第 7 页：AOF 写入与恢复">
+          <div class="slide-top"><span class="eyebrow">06 / PERSISTENCE</span><span class="section-id">持久化</span></div>
+          <h2>AOF 把写命令排队记录，启动时按原协议重放</h2>
+          <div class="aof-columns">
+            <div class="aof-column"><span class="column-index">写入 / FORWARD</span><h3>命令提交与磁盘同步分离</h3><div class="vertical-flow"><span>KVStore 写操作</span><i>↓</i><span>PersistCmd(ctx, cmd)</span><i>↓</i><span class="flow-accent">buffer chan [][]byte · 容量 1024</span><i>↓</i><span>AOF Writer · RESP 序列化</span><i>↓</i><span>Write() → 按策略 Sync()</span></div><div class="aof-policy"><b>Sync 策略</b><span><strong>always</strong> 每次写入后</span><span><strong>everysec</strong> 约每秒一次</span><span><strong>no</strong> 运行中不主动同步</span></div></div>
+            <div class="aof-divider"></div>
+            <div class="aof-column"><span class="column-index">恢复 / REPLAY</span><h3>历史命令重新进入执行链</h3><div class="vertical-flow"><span>Reloader() 读取 AOF</span><i>↓</i><span>Parser.ParseStream()</span><i>↓</i><span class="flow-accent">Handler.handle() / DBTrigger</span><i>↓</i><span>DBExecutor → KVStore</span><i>↓</i><span>内存状态重建</span></div><div class="replay-note"><b>LoadingPattern</b><p>恢复上下文带标记，<code>PersistCmd()</code> 遇到该标记直接返回，避免重放时再次写入 AOF。</p></div></div>
+          </div>
+          <div class="warning-line"><b>边界</b>　写入 AOF Channel 只代表任务已提交；是否落盘取决于 Writer 与 Sync 策略。</div>
+          <div class="source">源码：persist/aof.go · persist/persist.go · handler/handler.go · handler/persister.go</div>
+        </section>
+
+        <section class="slide" aria-label="第 8 页：AOF Rewrite">
+          <div class="slide-top"><span class="eyebrow">07 / AOF REWRITE</span><span class="section-id">重点机制</span></div>
+          <h2>以 fileSize 为边界：压缩旧状态，补齐新增命令</h2>
+          <p class="lead">重建最耗时的一段不长期持有文件锁；开始和结束阶段短暂锁定以取得一致边界。</p>
+          <div class="rewrite-phases"><div><em>01</em><b>startRewrite()</b><span>加锁、Sync、记录 fileSize、创建临时文件</span></div><div><em>02</em><b>doRewrite()</b><span>LimitReader → forkDB → ForEach → ToCmd</span></div><div><em>03</em><b>endRewrite()</b><span>再加锁、复制尾部、Sync、Rename、重新打开</span></div></div>
+          <div class="file-compare"><div class="compare-row"><span class="compare-label">旧 AOF</span><div class="file-bar"><div class="historical">历史命令 · 0 → fileSize</div><div class="tail">重写期间新增命令</div><div class="boundary"><i></i><span>fileSize</span></div></div></div><div class="compare-arrow">↓　旧区间重放为临时 KVStore，再经 CmdAdapter.ToCmd() 写入精简状态</div><div class="compare-row"><span class="compare-label">新 AOF</span><div class="file-bar"><div class="compacted">当前状态对应的精简命令</div><div class="tail">补齐新增命令</div></div></div></div>
+          <div class="rewrite-bottom"><div><b>为什么能缩短锁时间</b><span>第二阶段只读取已截断的历史区间，正常请求仍可继续追加原 AOF。</span></div><div><b>源码边界</b><span><code>ForEach</code> 写入错误被忽略；<code>os.Stat</code> 的错误未检查。不能把该实现描述为无条件原子或绝对可靠。</span></div></div>
+          <div class="source">源码：persist/aof_rewrite.go · datastore/persist.go · database/struct.go</div>
+        </section>
+
+        <section class="slide" aria-label="第 9 页：Key 过期">
+          <div class="slide-top"><span class="eyebrow">08 / EXPIRATION</span><span class="section-id">过期</span></div>
+          <h2>过期时间存两份：精确查询 + 有序扫描</h2>
+          <p class="lead"><code>expiredAt</code> 保存 key → 时间；<code>expireTimeWheel</code> 是同一项目的 Skip List Sorted Set，按 Unix 秒索引将到期 key。</p>
+          <div class="expiry-index"><div><small>精确判断</small><strong>expiredAt map[string]time.Time</strong></div><span>＋</span><div><small>按时扫描</small><strong>expireTimeWheel SortedSet</strong></div></div>
+          <div class="expiry-paths"><div class="expiry-path"><span class="path-kicker">路径 A · 惰性过期</span><div class="path-flow"><span>访问命令</span><i>→</i><span>ExpirePreprocess(key)</span><i>→</i><span>时间已到？</span><i>→</i><span class="flow-accent">expireProcess() 删除</span></div><p>每条命令执行前，Executor 对首个 key 做检查。</p></div><div class="expiry-path"><span class="path-kicker">路径 B · 定期清理</span><div class="path-flow"><span>1 分钟 Ticker</span><i>→</i><span>GC()</span><i>→</i><span>Range(0, nowUnix)</span><i>→</i><span class="flow-accent">逐个过期检查</span></div><p>利用有序集合快速取出截止当前时间的候选 key。</p></div></div>
+          <div class="expiry-note"><b>设置入口</b>　<code>EXPIRE</code> 转绝对过期时间；<code>EXPIREAT</code> 直接设置时间。过期记录可作为命令写入 AOF。</div>
+          <div class="source">源码：datastore/kv_store.go · datastore/expire.go · database/executor.go · datastore/sorted_set.go</div>
+        </section>
+
+        <section class="slide last-slide" aria-label="第 10 页：验证与总结">
+          <div class="slide-top"><span class="eyebrow">09 / EVIDENCE & NEXT</span><span class="section-id">总结</span></div>
+          <h2>复现的收获：把协议、调度、数据结构与持久化接成闭环</h2>
+          <div class="closing-grid"><div class="closing-left"><h3>验证状态</h3><div class="status-row"><span class="status-dot pass"></span><div><b>已验证</b><p>项目可编译；此前手动 RESP SET / GET 正常；本次 <code>database</code> 与 <code>demo</code> 包测试通过。</p></div></div><div class="status-row"><span class="status-dot caution"></span><div><b>本次全量测试未通过</b><p>根目录集成测试固定绑定 6379；该端口已被现有 Demo 占用。不能据此判定功能失败，也不能宣称全量测试通过。</p></div></div><div class="status-row"><span class="status-dot open"></span><div><b>后续验证</b><p>五类命令边界、过期时序、AOF 重启恢复与 Rewrite，以及更完整的并发压力场景。</p></div></div></div><div class="closing-right"><h3>四个核心能力</h3><ol><li><span>01</span><b>服务架构</b><p>从 TCP/RESP 到接口装配和分层协作</p></li><li><span>02</span><b>数据结构</b><p>Map、List、Set、Hash 与按 score 索引的跳表</p></li><li><span>03</span><b>并发编程</b><p>协程池、Channel、单执行循环和关闭协调</p></li><li><span>04</span><b>持久化</b><p>AOF 异步写入、重放恢复与区间重写</p></li></ol></div></div>
+          <div class="closing-foot"><b>下一步：</b>将固定端口测试改为隔离端口；补充 Rewrite 写入错误检查与更完整的恢复测试。</div>
+          <div class="source">依据：goredis-rebuild 当前源码与本次本地验证；未使用性能指标或通过率估算</div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <nav class="controls" aria-label="演示控制"><div class="controls-left"><span class="control-brand">GO REDIS / SOURCE WALKTHROUGH</span><span class="progress-track"><span id="progress-fill"></span></span><span id="page-counter">01 / 10</span></div><div class="controls-right"><span class="hint">← → 翻页 · F 全屏</span><button id="prev" type="button" aria-label="上一页">←</button><button id="next" type="button" aria-label="下一页">→</button><button id="fullscreen" type="button" aria-label="全屏展示">⛶</button></div></nav>
+</body>
+</html>

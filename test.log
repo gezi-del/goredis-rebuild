@@ -1,0 +1,4 @@
+2026-09-16T15:06:21.190+0800	DEBUG	runtime/proc.go:290	this is debug log
+2026-09-16T15:06:21.191+0800	INFO	runtime/proc.go:290	this is info log
+2026-09-16T15:06:21.191+0800	WARN	runtime/proc.go:290	this is warn log
+2026-09-16T15:06:21.191+0800	ERROR	runtime/proc.go:290	this is error log

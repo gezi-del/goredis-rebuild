@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>goredis 药房 · 本地演示</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230071e3'/%3E%3Cpath d='m18 22 10 10-10 10m17 0h12' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="terminal" viewBox="0 0 24 24"><path d="m5 6 6 6-6 6m9 0h5"/></symbol>
+    <symbol id="layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="log" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="refresh" viewBox="0 0 24 24"><path d="M20 8a9 9 0 1 0 1 7M20 3v6h-6"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V3H3v13h5"/></symbol>
+    <symbol id="database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 4 16 4 16 0V5M4 12v7c0 4 16 4 16 0v-7"/></symbol>
+    <symbol id="archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M9 14h6"/></symbol>
+  </defs></svg>
+
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="/" aria-label="goredis 药房"><span class="brand-icon"><svg><use href="#terminal"/></svg></span><span>goredis<span class="brand-divider">/</span><span class="brand-light">药房</span></span></a>
+    <div class="topbar-right"><span class="local-label">LOCAL ENVIRONMENT</span><button class="connection" id="connection" title="刷新连接状态"><span class="status-dot"></span><span id="connection-text">正在连接</span></button></div>
+  </div></header>
+
+  <main class="workspace">
+    <div class="ambient-scene" aria-hidden="true">
+      <svg class="apothecary" viewBox="0 0 1200 720" preserveAspectRatio="xMidYMin slice">
+        <defs>
+          <linearGradient id="room-wash" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f9f2e6"/><stop offset=".52" stop-color="#d5e7de"/><stop offset="1" stop-color="#c9d9e7"/></linearGradient>
+          <linearGradient id="cabinet-wood" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b88764"/><stop offset="1" stop-color="#8d684f"/></linearGradient>
+          <linearGradient id="counter-wood" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#c39a72"/><stop offset="1" stop-color="#966d50"/></linearGradient>
+          <linearGradient id="robe-color" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#789a9a"/><stop offset="1" stop-color="#496c72"/></linearGradient>
+          <radialGradient id="window-light"><stop stop-color="#fff6d9" stop-opacity=".95"/><stop offset="1" stop-color="#fff6d9" stop-opacity="0"/></radialGradient>
+          <pattern id="drawer-grid" width="94" height="70" patternUnits="userSpaceOnUse"><rect x="7" y="7" width="80" height="54" rx="5" fill="#d8ad83" stroke="#845d48" stroke-width="3"/><path d="M13 17h68M13 53h68" stroke="#f4d6ae" stroke-opacity=".55"/><rect x="33" y="32" width="28" height="13" rx="3" fill="#f2dfb8" stroke="#a57755" stroke-width="1.5"/><circle cx="47" cy="38" r="3" fill="#9c7050"/></pattern>
+          <filter id="scene-shadow"><feGaussianBlur stdDeviation="15"/></filter>
+        </defs>
+        <rect width="1200" height="720" fill="url(#room-wash)"/>
+        <circle cx="805" cy="198" r="290" fill="url(#window-light)" class="scene-sun"/>
+        <path d="M0 122Q342 102 632 135T1200 108V0H0Z" fill="#faf7ef" opacity=".5"/>
+        <path d="M0 570Q410 530 1200 555V720H0Z" fill="#8fa9a0" opacity=".22"/>
+        <rect x="0" y="74" width="560" height="490" rx="13" fill="url(#cabinet-wood)" stroke="#825f4b" stroke-width="8"/>
+        <rect x="18" y="106" width="526" height="422" fill="url(#drawer-grid)"/>
+        <rect x="0" y="49" width="560" height="37" rx="8" fill="#7e5944"/>
+        <path d="M21 65h520M18 533h526" stroke="#e9ba8c" stroke-width="4" opacity=".56"/>
+        <path d="M560 96V573M1192 81V570" stroke="#8d684f" stroke-width="18" opacity=".65"/>
+        <rect x="590" y="60" width="600" height="515" rx="17" fill="url(#cabinet-wood)" stroke="#825f4b" stroke-width="10"/>
+        <rect x="612" y="93" width="555" height="452" rx="5" fill="#755941" opacity=".36"/>
+        <rect x="624" y="105" width="530" height="426" fill="url(#drawer-grid)"/>
+        <path d="M624 105h530M624 531h530" stroke="#f6d4a8" stroke-opacity=".65" stroke-width="6"/>
+        <rect x="589" y="49" width="600" height="36" rx="8" fill="#7e5944"/>
+        <path d="M616 63h545" stroke="#e9ba8c" stroke-width="3" opacity=".6"/>
+        <g class="scene-drawer" transform="translate(853 287)"><rect x="-5" y="-5" width="92" height="67" rx="6" fill="#6f4d3b" opacity=".4"/><rect x="0" y="0" width="80" height="54" rx="5" fill="#e8bf91" stroke="#8a6249" stroke-width="3"/><path d="M7 11h66M7 46h66" stroke="#fbe6c5" stroke-width="2" opacity=".7"/><rect x="27" y="25" width="27" height="14" rx="3" fill="#f6e7c6" stroke="#a57755"/><circle cx="40" cy="32" r="3" fill="#9b6d4f"/></g>
+        <path d="M933 20v65" stroke="#7c644e" stroke-width="4"/><path d="M886 82q47-26 94 0l-15 33h-64Z" fill="#ead7ad" stroke="#af8c66" stroke-width="3"/><ellipse cx="933" cy="124" rx="74" ry="39" fill="#f9e3b8" opacity=".3"/>
+        <g class="scene-placards" fill="#40372f" stroke="#b28c63" stroke-width="2"><path d="M665 72v107h58V72Z"/><path d="M761 72v116h58V72Z"/><path d="M1015 72v112h58V72Z"/></g>
+        <g stroke="#765b46" stroke-width="2"><path d="M694 43v29m96-29v29m254-29v29"/></g><g fill="#cc5e50"><path d="M691 179h6v27h-6Zm96 9h6v27h-6Zm254-4h6v27h-6Z"/></g>
+        <g font-family="serif" font-size="22" letter-spacing="4" fill="#f1d9aa" text-anchor="middle"><text x="694" y="112">安</text><text x="694" y="143">神</text><text x="790" y="112">醒</text><text x="790" y="145">神</text><text x="1044" y="112">清</text><text x="1044" y="145">心</text></g>
+        <g class="scene-foreground" transform="translate(0 -90)">
+        <g class="scene-plant"><path d="M1080 529q-24-58 2-126m0 120q17-71 52-91m-52 58q-27-44-48-58" fill="none" stroke="#537e65" stroke-width="7" stroke-linecap="round"/><path d="M1082 416q-28-27-9-49 29 11 9 49Zm45 24q3-40 29-41 8 29-29 41Zm-92-4q-39-8-35-37 30-2 35 37Z" fill="#6d9679"/><path d="M1058 517h54l-7 51h-40Z" fill="#a76e56" stroke="#805849" stroke-width="3"/></g>
+        <ellipse cx="753" cy="600" rx="233" ry="33" fill="#526962" opacity=".26" filter="url(#scene-shadow)"/>
+        <g class="shopkeeper">
+          <path d="M672 553q-17-122 61-160h97q81 47 74 160Z" fill="url(#robe-color)" stroke="#385b63" stroke-width="5"/>
+          <path d="M749 391l37 84 43-84" fill="#e2ddd0" stroke="#42696c" stroke-width="4"/>
+          <path d="M737 423q-15 76-11 127m125-120q9 55 4 123" fill="none" stroke="#acc2b6" stroke-width="3" opacity=".75"/>
+          <g class="scene-head"><ellipse cx="737" cy="345" rx="10" ry="15" fill="#d9a980" stroke="#a87862" stroke-width="2"/><ellipse cx="831" cy="345" rx="10" ry="15" fill="#d9a980" stroke="#a87862" stroke-width="2"/><ellipse cx="784" cy="344" rx="48" ry="56" fill="#ecc39d" stroke="#ae8065" stroke-width="3"/><path d="M738 333q-12-64 44-71 55 4 52 66-16-17-26-39-28 33-70 44Z" fill="#2f403c"/><path d="M753 278q13-30 47-30 19 0 26 27l-12 10q-32-12-61-7Z" fill="#41534a"/><path d="M778 257q2-20 16-20 15 0 15 19" fill="#314139"/><path d="M776 250h37" stroke="#a8865b" stroke-width="4" stroke-linecap="round"/><path d="M752 339q11-7 20 0m24 0q10-7 21 0" fill="none" stroke="#51493e" stroke-width="2.8" stroke-linecap="round"/><ellipse cx="762" cy="351" rx="5" ry="7" fill="#3b3e37"/><ellipse cx="806" cy="351" rx="5" ry="7" fill="#3b3e37"/><circle cx="764" cy="349" r="1.8" fill="#fff9e9"/><circle cx="808" cy="349" r="1.8" fill="#fff9e9"/><ellipse cx="753" cy="368" rx="9" ry="5" fill="#db9a8a" opacity=".6"/><ellipse cx="815" cy="368" rx="9" ry="5" fill="#db9a8a" opacity=".6"/><path d="M784 354l-3 11q4 3 8 0" fill="none" stroke="#be8a71" stroke-width="2" stroke-linecap="round"/><path d="M770 378q14 12 29-1" fill="none" stroke="#8d594c" stroke-width="2.8" stroke-linecap="round"/></g>
+          <g class="scene-arm"><path d="M844 440q38 0 58-40l7-12" fill="none" stroke="#527880" stroke-width="25" stroke-linecap="round"/><path d="M909 388q7-11 15-12" fill="none" stroke="#e3b88e" stroke-width="15" stroke-linecap="round"/></g>
+        </g>
+        <path d="M598 522h577q18 0 22 20v22H576v-22q1-20 22-20Z" fill="#d3aa7b" stroke="#91694e" stroke-width="6"/>
+        <rect x="582" y="561" width="605" height="101" rx="7" fill="url(#counter-wood)" stroke="#885f46" stroke-width="5"/>
+        <path d="M607 583h552M607 639h552" stroke="#e9c092" stroke-width="3" opacity=".65"/>
+        <rect x="596" y="664" width="582" height="22" rx="4" fill="#846149"/>
+        <g class="scene-ledger"><path d="M699 508q37-15 79 2l-4 25q-38-15-77-2Z" fill="#f7ecd3" stroke="#9b8567" stroke-width="2"/><path d="M779 510q35-12 67 1l2 25q-36-14-74-1Z" fill="#e9ddc2" stroke="#9b8567" stroke-width="2"/><path d="M773 510v25" stroke="#ad9276" stroke-width="2"/></g>
+        <g class="scene-counter-objects"><path d="M974 518q5 29 38 30h47q35-4 39-30Z" fill="#ead4ab" stroke="#8f6b50" stroke-width="4"/><ellipse cx="1036" cy="518" rx="62" ry="12" fill="#d4b187" stroke="#8f6b50" stroke-width="4"/><path d="M1025 484q31 5 29 32" fill="none" stroke="#8c7152" stroke-width="8" stroke-linecap="round"/><path d="M613 514q5 20 25 24h36q23-3 27-24Z" fill="#b1c5b9" stroke="#6c8578" stroke-width="4"/><ellipse cx="656" cy="515" rx="44" ry="9" fill="#d2dbcb" stroke="#6c8578" stroke-width="3"/></g>
+        </g>
+        <circle cx="618" cy="178" r="5" fill="#fff7de" class="scene-dust dust-one"/><circle cx="555" cy="309" r="3" fill="#fff7de" class="scene-dust dust-two"/><circle cx="1026" cy="184" r="4" fill="#fff7de" class="scene-dust dust-three"/>
+      </svg>
+      <div class="scene-vignette"></div>
+    </div>
+    <section class="intro"><div><div class="eyebrow"><span></span> LOCAL REDIS APOTHECARY</div><h1>goredis 药房</h1><p>执行命令 · 查看存储 · 追踪日志与 AOF</p></div><div class="intro-tag"><svg><use href="#database"/></svg><span>本地实时连接<span class="tag-sub">Go · Redis · AOF</span></span></div></section>
+
+    <section class="actions" aria-label="工作台功能">
+      <button class="action-card command-card tilt-card" id="open-commands"><span class="action-top"><span class="feature-icon blue"><svg><use href="#terminal"/></svg></span><span class="card-index">01 / 04</span></span><span class="card-seal" aria-hidden="true">令</span><span class="action-title">执行命令<svg><use href="#arrow"/></svg></span><span class="action-description">选择命令，填写参数，<br>立即查看数据库的响应。</span><span class="command-types" aria-hidden="true"><span>STRING</span><span>LIST</span><span>SET</span><span>HASH</span><span>ZSET</span></span><span class="action-foot"><span class="tiny-pill">20 条命令</span><span class="command-ticket">打开命令选择器 <span aria-hidden="true">↗</span></span></span></button>
+      <button class="action-card tilt-card" id="open-storage"><span class="action-top"><span class="feature-icon violet"><svg><use href="#layers"/></svg></span><span class="card-index">02 / 04</span></span><span class="action-title">存储信息<svg><use href="#arrow"/></svg></span><span class="action-description">查看键值、类型和过期时间。</span><span class="action-foot"><span class="tiny-pill violet-pill"><span id="storage-key-count">0</span> 个键</span><span>浏览数据库 <span aria-hidden="true">↗</span></span></span></button>
+      <button class="action-card tilt-card" id="open-logs"><span class="action-top"><span class="feature-icon amber"><svg><use href="#log"/></svg></span><span class="card-index">03 / 04</span></span><span class="action-title">日志<svg><use href="#arrow"/></svg></span><span class="action-description">查看运行日志与命令记录。</span><span class="action-foot"><span class="tiny-pill amber-pill">双视图</span><span>查看日志 <span aria-hidden="true">↗</span></span></span></button>
+      <button class="action-card aof-card tilt-card" id="open-aof"><span class="aof-card-icon feature-icon blue"><svg><use href="#archive"/></svg></span><span class="aof-card-copy"><span class="card-index">04 / 04 · PERSISTENCE</span><span class="action-title">AOF 持久化<svg><use href="#arrow"/></svg></span><span class="action-description">查看真实 AOF 文件、同步策略和最近写入记录。</span></span><span class="aof-card-meta"><span class="tiny-pill" id="aof-card-status">读取中</span><span id="aof-card-size">—</span></span></button>
+    </section>
+
+    <section class="dashboard">
+      <article class="panel recent-panel"><div class="panel-heading"><div><h2>最近执行</h2><p>当前演示会话中的命令</p></div><button class="text-button" id="all-history">全部记录 <svg><use href="#chevron"/></svg></button></div><div id="recent-list" class="recent-list"><div class="empty-state"><span class="empty-icon"><svg><use href="#terminal"/></svg></span><h3>从一条 SET 开始</h3><p>执行第一条命令，结果将在这里出现。</p><button class="text-button" id="first-set">试试 SET <svg><use href="#arrow"/></svg></button></div></div></article>
+      <article class="panel overview-panel"><div class="panel-heading"><div><h2>数据库概览</h2><p>当前键值与数据类型</p></div><button class="icon-button" id="refresh-overview" aria-label="刷新数据库概览"><svg><use href="#refresh"/></svg></button></div><div class="overview-content"><div class="donut" id="type-donut"><div><strong id="key-total">0</strong><span>个键</span></div></div><div class="type-legend" id="type-legend"></div></div><div class="overview-bottom"><span><span class="live-dot"></span>有效数据快照</span><span id="expiry-count">0 个键设置了过期时间</span></div></article>
+    </section>
+    <footer class="footer"><span>本地学习演示 · goredis</span><span><span id="footer-address">127.0.0.1:6379</span><span class="footer-dot">·</span><span id="aof-label">AOF</span></span></footer>
+  </main>
+
+  <dialog id="picker-dialog" class="modal picker-modal" aria-labelledby="picker-title"><div class="modal-top"><div><span class="eyebrow">CHOOSE A COMMAND</span><h2 id="picker-title">下一步，做点什么？</h2></div><button class="icon-button close-dialog" aria-label="关闭命令选择器"><svg><use href="#close"/></svg></button></div><div class="picker-tools"><div class="search-field"><svg><use href="#search"/></svg><input id="command-search" placeholder="搜索命令" aria-label="搜索命令"></div><div class="category-chips" id="categories"></div></div><div class="wheel-container"><div class="wheel-highlight"></div><div id="command-wheel" class="command-wheel" role="listbox" tabindex="0" aria-label="上下滚动选择命令"></div><div class="wheel-fade top"></div><div class="wheel-fade bottom"></div></div><div class="selected-description"><span id="selected-category" class="type-badge">STRING</span><p id="selected-description"></p></div><div class="modal-footer"><span class="keyboard-hint">↑ ↓ 选择 <kbd>Enter</kbd> 继续</span><button class="primary-button" id="choose-command">使用此命令 <svg><use href="#arrow"/></svg></button></div></dialog>
+
+  <dialog id="command-dialog" class="modal command-modal" aria-labelledby="command-title"><form id="command-form"><div class="modal-top"><div><span class="eyebrow" id="command-type">STRING</span><h2 id="command-title">SET</h2><p id="command-description"></p></div><button type="button" class="icon-button close-dialog" aria-label="关闭命令表单"><svg><use href="#close"/></svg></button></div><div class="form-body" id="command-fields"></div><div class="command-preview"><span>命令预览</span><code id="command-preview"></code></div><div class="form-error" id="form-error" role="alert"></div><div class="modal-footer"><button type="button" class="text-button" id="change-command">← 更换命令</button><button class="primary-button" id="execute-command" type="submit">执行命令 <kbd>↵</kbd></button></div></form></dialog>
+
+  <dialog id="result-dialog" class="modal result-modal" aria-labelledby="result-title"><div class="modal-top"><div><span class="eyebrow">COMMAND RESULT</span><h2 id="result-title">执行结果</h2></div><button class="icon-button close-dialog" aria-label="关闭执行结果"><svg><use href="#close"/></svg></button></div><div class="result-body" id="result-body"></div><div class="modal-footer"><button class="text-button" id="result-storage">查看存储信息 <svg><use href="#arrow"/></svg></button><button class="primary-button" id="next-command">继续执行</button></div></dialog>
+
+  <dialog id="storage-dialog" class="modal wide-modal" aria-labelledby="storage-title"><div class="modal-top"><div><span class="eyebrow">INSIDE YOUR DATABASE</span><h2 id="storage-title">存储信息</h2><p>此刻的数据，清晰呈现。</p></div><button class="icon-button close-dialog" aria-label="关闭存储信息"><svg><use href="#close"/></svg></button></div><div class="panel-toolbar"><div class="search-field"><svg><use href="#search"/></svg><input id="storage-search" placeholder="搜索 key 或内容" aria-label="搜索存储信息"></div><select id="storage-type" aria-label="筛选数据类型"><option value="">所有类型</option><option value="string">String</option><option value="list">List</option><option value="set">Set</option><option value="hash">Hash</option><option value="zset">Sorted Set</option></select><button class="secondary-button" id="refresh-storage"><svg><use href="#refresh"/></svg>刷新</button></div><div class="storage-table-wrap"><table class="storage-table"><thead><tr><th>KEY</th><th>类型</th><th>内容</th><th>过期时间</th><th></th></tr></thead><tbody id="storage-rows"></tbody></table><div id="storage-empty" class="table-empty" hidden></div></div><div class="storage-detail" id="storage-detail" hidden></div><div class="modal-footer"><span class="muted" id="storage-summary"></span><span class="snapshot-note"><span class="live-dot"></span>只读快照 · 手动刷新</span></div></dialog>
+
+  <dialog id="logs-dialog" class="modal wide-modal" aria-labelledby="logs-title"><div class="modal-top"><div><span class="eyebrow">EVERY STEP, A TRACE</span><h2 id="logs-title">日志</h2><p>从命令到响应，回看每一步。</p></div><button class="icon-button close-dialog" aria-label="关闭日志"><svg><use href="#close"/></svg></button></div><div class="logs-toolbar"><div class="segmented" role="tablist" aria-label="日志类型"><button id="history-tab" role="tab" aria-selected="true">命令记录</button><button id="runtime-tab" role="tab" aria-selected="false">运行日志</button></div><div class="log-controls"><select id="log-level" aria-label="日志级别" hidden><option value="">所有级别</option><option>INFO</option><option>WARN</option><option>ERROR</option><option>DEBUG</option></select><button class="text-button" id="clear-history">清空记录</button><button class="icon-button" id="refresh-logs" aria-label="刷新日志"><svg><use href="#refresh"/></svg></button></div></div><div id="logs-content" class="logs-content" role="tabpanel"></div><div class="modal-footer"><span class="muted" id="logs-summary"></span><span class="muted">保留最近记录</span></div></dialog>
+
+  <dialog id="aof-dialog" class="modal wide-modal aof-modal" aria-labelledby="aof-title"><div class="modal-top"><div><span class="eyebrow">APPEND ONLY FILE</span><h2 id="aof-title">AOF 持久化</h2><p>从真实文件读取当前的持久化状态。</p></div><button class="icon-button close-dialog" aria-label="关闭 AOF 视图"><svg><use href="#close"/></svg></button></div><div class="aof-body"><div class="aof-stats"><div><span>状态</span><strong id="aof-enabled">读取中</strong></div><div><span>同步策略</span><strong id="aof-sync">—</strong></div><div><span>文件大小</span><strong id="aof-size">—</strong></div><div><span>当前文件命令</span><strong id="aof-total">—</strong></div></div><div class="aof-flow" aria-label="AOF 工作流程"><span>写入命令</span><svg><use href="#arrow"/></svg><span>追加到文件</span><svg><use href="#arrow"/></svg><span>重启时重放</span></div><div class="aof-record-heading"><div><h3>文件中的最近记录</h3><p id="aof-file-info">—</p></div><button class="secondary-button" id="refresh-aof"><svg><use href="#refresh"/></svg>刷新文件</button></div><div id="aof-records" class="aof-records" aria-live="polite"></div><p class="aof-note" id="aof-note"></p></div><div class="modal-footer"><span class="muted">演示恢复：SET 写入 → 关闭并重启 Demo → GET 查询</span><button class="text-button" id="aof-command">去执行命令 <svg><use href="#arrow"/></svg></button></div></dialog>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>

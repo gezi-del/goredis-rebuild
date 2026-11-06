@@ -1,0 +1,24 @@
+2026-10-26T16:30:01.178+0800	ERROR	handler/handler.go:46	[handler]conn terminated, err: EOF
+2026-10-26T16:30:17.860+0800	ERROR	handler/handler.go:46	[handler]conn terminated, err: EOF
+2026-10-26T16:30:17.863+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T16:30:17.863+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T16:30:17.863+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T16:30:17.864+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T16:30:17.864+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T16:30:17.864+0800	WARN	sync/once.go:78	[handler]handler closing...
+2026-10-26T17:18:37.243+0800	ERROR	handler/handler.go:46	[handler]conn terminated, err: EOF
+2026-10-26T17:18:49.208+0800	ERROR	handler/handler.go:46	[handler]conn terminated, err: EOF
+2026-10-26T17:18:49.210+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:18:49.210+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:18:49.210+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:18:49.210+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:18:49.210+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:18:49.210+0800	WARN	sync/once.go:78	[handler]handler closing...
+2026-10-26T17:24:39.526+0800	ERROR	handler/handler.go:46	[handler]conn terminated, err: EOF
+2026-10-26T17:24:39.529+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:24:39.530+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:24:39.530+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:24:39.530+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:24:39.530+0800	ERROR	handler/handler.go:70	[handler]conn terminated, err: EOF
+2026-10-26T17:24:39.530+0800	WARN	sync/once.go:78	[handler]handler closing...
+2026-10-26T17:24:39.530+0800	ERROR	sync/once.go:78	[handler]close conn err, local addr: 127.0.0.1:52028, err: close tcp 127.0.0.1:52028->127.0.0.1:52033: use of closed network connection
